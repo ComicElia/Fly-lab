@@ -1,3 +1,4 @@
+maybe check out the website: https://comicelia.github.io/Fly-lab/
 So i think this is a website where you can mess with flies, you can drop food, blow wind at it, or like trigger a "phantom food" override that makes it endlessly chase a reward that doesn't actually exist, make it hungry forever, make it panic for eternity (as long as the website is open), poke them, if you spawn multiple flies you can make them swarm, make them fight over food, etc. most of these features are accessible if u press "lab" at the top right or something...
 
 This playground wouldn't exist without the incredible open-source tools and massive scientific milestones achieved by the global neuroscience community:

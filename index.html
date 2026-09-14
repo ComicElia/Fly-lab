@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+<meta name="theme-color" content="#080b12" />
+<title>FlyLab // Connectome Playground</title>
+<style>
+  :root{
+    color-scheme:dark;
+    --bg:#070a10;--panel:#0e1420dd;--panel2:#121a28;--line:#253146;--text:#e8eef8;--muted:#91a0b5;
+    --good:#58e59d;--warn:#ffcf5a;--bad:#ff6b7d;--blue:#6ba6ff;--violet:#b792ff;--cyan:#54d8e8;
+    --safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--text)}
+  button,input{font:inherit}
+  button{color:inherit}
+  #app{position:fixed;inset:0;background:radial-gradient(circle at 30% 20%,#14202d 0,#0a0e16 35%,#06090f 75%)}
+  #world{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+  .topbar{position:absolute;left:10px;right:10px;top:calc(8px + var(--safe-top));height:52px;display:flex;align-items:center;gap:8px;padding:7px 9px;border:1px solid #253249aa;border-radius:15px;background:#0c121ccc;backdrop-filter:blur(14px);z-index:10;box-shadow:0 12px 34px #0006}
+  .brand{font-weight:800;letter-spacing:.08em;white-space:nowrap}.brand small{display:block;color:var(--muted);font-size:9px;letter-spacing:.14em;margin-top:1px}
+  .spacer{flex:1}.pill{border:1px solid var(--line);background:#131b29;border-radius:10px;padding:8px 10px;min-height:36px;cursor:pointer}.pill:active{transform:translateY(1px)}
+  .pill.active{border-color:#6ba6ff80;background:#17253a}.iconbtn{width:38px;padding:7px 0;text-align:center}
+  .hud{position:absolute;left:10px;top:calc(70px + var(--safe-top));width:min(298px,calc(100vw - 20px));max-height:calc(100vh - 188px - var(--safe-top) - var(--safe-bottom));overflow:auto;z-index:9;border:1px solid #263249aa;border-radius:15px;background:#0d131ed9;backdrop-filter:blur(14px);box-shadow:0 12px 34px #0005;transition:.18s transform,.18s opacity}
+  .hud.hidden{transform:translateX(calc(-100% - 20px));opacity:0;pointer-events:none}
+  .hud h3{margin:0;padding:12px 13px 8px;font-size:12px;letter-spacing:.12em;text-transform:uppercase}.section{border-top:1px solid #202c3e;padding:11px 12px}.section:first-of-type{border-top:0}.row{display:flex;align-items:center;gap:8px;margin:7px 0}.row.tight{margin:3px 0}.label{width:76px;font-size:10px;color:var(--muted)}.value{margin-left:auto;font-size:10px;color:#dce5f3}
+  .bar{height:7px;flex:1;background:#1b2637;border-radius:999px;overflow:hidden;border:1px solid #243147}.fill{height:100%;width:40%;border-radius:999px;background:linear-gradient(90deg,#5d8fff,#65e0ba)}
+  .stategrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.card{border:1px solid #263249;background:#121a27;border-radius:10px;padding:8px}.card b{display:block;font-size:15px}.card span{font-size:9px;color:var(--muted)}
+  .moodctrl{display:grid;grid-template-columns:66px 1fr 28px;align-items:center;gap:7px;margin:6px 0;font-size:10px}.moodctrl input{width:100%;accent-color:#6ba6ff}.moodctrl output{text-align:right;color:#cfe0fa}
+  .switchrow{display:flex;align-items:center;justify-content:space-between;margin:7px 0;font-size:10px;color:#c8d5e8}.switch{width:42px;height:23px;border-radius:999px;border:1px solid #33425a;background:#182232;position:relative}.switch:before{content:"";position:absolute;width:17px;height:17px;top:2px;left:3px;border-radius:50%;background:#7d8ba0;transition:.15s}.switch.on{background:#173425;border-color:#2b7852}.switch.on:before{left:20px;background:#62e6a2}
+  .dock{position:absolute;left:10px;right:10px;bottom:calc(10px + var(--safe-bottom));z-index:12;border:1px solid #263249aa;border-radius:16px;background:#0c121de8;backdrop-filter:blur(16px);box-shadow:0 12px 35px #0008;padding:8px}
+  .tools{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}.tools::-webkit-scrollbar{display:none}.tool{flex:0 0 auto;min-width:66px;border:1px solid #2a3850;background:#121b2a;border-radius:11px;padding:8px 10px;text-align:center;cursor:pointer}.tool .ico{font-size:18px;display:block;line-height:19px}.tool .txt{font-size:9px;color:#b4c1d3;margin-top:3px}.tool.active{border-color:#75a8ff;background:#182a43;box-shadow:inset 0 0 0 1px #75a8ff33}.tool.danger.active{border-color:#ff6b7d;background:#3a1822}
+  .bottomline{display:flex;gap:8px;margin-top:7px}.action{flex:1;border:1px solid #2b3950;background:#121a28;border-radius:10px;padding:8px;font-size:10px}.action.primary{background:#183152;border-color:#3f6da6}.action.danger{background:#35171d;border-color:#71303c}
+  .toast{position:absolute;left:50%;transform:translateX(-50%);top:calc(74px + var(--safe-top));z-index:30;background:#101826ee;border:1px solid #33445f;border-radius:999px;padding:8px 12px;font-size:10px;color:#d7e3f3;opacity:0;pointer-events:none;transition:.2s}.toast.show{opacity:1}
+  .badge{position:absolute;right:10px;top:calc(70px + var(--safe-top));z-index:8;background:#0d141fdd;border:1px solid #263249;border-radius:12px;padding:8px 10px;font-size:9px;color:var(--muted);max-width:145px;text-align:right}.badge b{color:#eaf2ff;font-size:11px}
+  .modal{position:absolute;inset:0;z-index:50;background:#05080dda;display:none;align-items:stretch;justify-content:center;padding:calc(10px + var(--safe-top)) 10px calc(10px + var(--safe-bottom))}.modal.open{display:flex}.modalbox{width:min(100%,1000px);border:1px solid #30415c;background:#09101af5;border-radius:16px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 30px 80px #000b}.modalhead{height:50px;display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid #26344b}.modalhead b{font-size:12px}.modalhead span{font-size:9px;color:var(--muted)}.modalbody{flex:1;min-height:0;position:relative}.modal iframe{border:0;width:100%;height:100%;background:#0b1018}.notice{position:absolute;left:12px;right:12px;bottom:12px;border:1px solid #32445e;background:#101926ee;border-radius:11px;padding:9px 11px;font-size:9px;color:#aebfd4;pointer-events:none}.notice b{color:#e8f0fb}
+  .help{position:absolute;inset:0;z-index:49;background:#060a11e8;display:none;padding:calc(18px + var(--safe-top)) 16px calc(18px + var(--safe-bottom));overflow:auto}.help.open{display:block}.helpbox{max-width:720px;margin:auto}.help h1{font-size:18px}.help h2{font-size:12px;margin-top:20px}.help p,.help li{font-size:11px;line-height:1.55;color:#b8c5d7}.help code{color:#a9d0ff;background:#131d2c;padding:1px 4px;border-radius:4px}
+  .xbtn{margin-left:auto;border:1px solid #31415a;background:#141d2b;border-radius:9px;padding:7px 10px}
+  .brainpanel{position:absolute;right:10px;top:calc(132px + var(--safe-top));width:145px;z-index:8;border:1px solid #263249;border-radius:12px;background:#0d141fdc;padding:9px;transition:.18s}.brainpanel h4{font-size:9px;margin:0 0 8px;color:#9aacbf;letter-spacing:.1em}.spikes{height:58px;width:100%;display:block;background:#09101a;border:1px solid #202d40;border-radius:7px}.tiny{font-size:8px;color:#718198;margin-top:5px}
+  .labmodal .modalbox{max-width:920px}.labbody{overflow:auto;padding:10px}.labgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.labsection{border:1px solid #26344a;background:#0f1723;border-radius:12px;padding:10px}.labsection h3{margin:0 0 8px;font-size:10px;letter-spacing:.12em;color:#a9bdd6}.labsection p{font-size:9px;line-height:1.45;color:#8294ab;margin:7px 0}.labbuttons{display:flex;flex-wrap:wrap;gap:6px}.labbtn{border:1px solid #304059;background:#151f2e;border-radius:9px;padding:7px 8px;font-size:9px;cursor:pointer}.labbtn.active{border-color:#6ba6ff;background:#1b3150;box-shadow:inset 0 0 0 1px #6ba6ff33}.labbtn.danger.active{border-color:#ff6b7d;background:#3a1922}.labbtn.good.active{border-color:#58e59d;background:#143226}.labline{display:grid;grid-template-columns:82px 1fr 35px;gap:7px;align-items:center;margin:7px 0;font-size:9px;color:#aabbd0}.labline input,.labline select{width:100%;accent-color:#6ba6ff;background:#111a27;color:#dce7f7;border:1px solid #2b3950;border-radius:7px;padding:5px}.labstat{display:grid;grid-template-columns:1fr auto;gap:8px;font-size:9px;padding:4px 0;color:#9fb1c8}.labstat b{color:#e5edf8}.memorybar{height:8px;border-radius:999px;background:linear-gradient(90deg,#ff6879 0 49%,#2b3442 49% 51%,#61df9e 51%);position:relative;margin-top:7px}.memorydot{position:absolute;top:-3px;width:4px;height:14px;background:white;border-radius:3px;left:50%;box-shadow:0 0 5px #fff8}.cueLegend{display:flex;gap:9px;flex-wrap:wrap;font-size:8px;color:#8598b1}.cueLegend span:before{content:'●';margin-right:4px}.cueLegend .reward:before{color:#64e4a0}.cueLegend .fear:before{color:#ff6d7c}.cueLegend .test:before{color:#b995ff}
+  @media (max-width:700px){.labgrid{grid-template-columns:1fr}.labbody{padding:8px}}
+  @media (max-width:560px){.brand small{display:none}.brand{font-size:12px}.topbar .wide{display:none}.badge{top:calc(69px + var(--safe-top))}.brainpanel{display:none}.hud{max-height:calc(100vh - 182px - var(--safe-top) - var(--safe-bottom))}.tool{min-width:59px;padding:7px 8px}.tool .txt{font-size:8px}}
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="world"></canvas>
+  <div class="topbar">
+    <button class="pill iconbtn" id="panelBtn" aria-label="Toggle panel">☰</button>
+    <div class="brand">FLYLAB <small>CONNECTOME PLAYGROUND</small></div>
+    <div class="spacer"></div>
+    <button class="pill wide" id="pauseBtn">PAUSE</button>
+    <button class="pill" id="realBrainBtn">139K BRAIN</button>
+    <button class="pill" id="labBtn">LAB</button>
+    <button class="pill iconbtn" id="helpBtn">?</button>
+  </div>
+
+  <aside class="hud" id="hud">
+    <h3>Selected specimen</h3>
+    <div class="section">
+      <div class="stategrid">
+        <div class="card"><b id="flyName">F-001</b><span>specimen</span></div>
+        <div class="card"><b id="flyMood">curious</b><span>inferred mood</span></div>
+        <div class="card"><b id="flyState">wandering</b><span>behavior</span></div>
+        <div class="card"><b id="flyAge">0:00</b><span>session age</span></div>
+      </div>
+    </div>
+    <div class="section" id="drives"></div>
+    <div class="section">
+      <div style="font-size:9px;color:#91a0b5;margin-bottom:8px">EXPERIMENTAL DRIVE OVERRIDES</div>
+      <div class="moodctrl"><span>Hunger</span><input id="ctlHunger" type="range" min="0" max="100" value="40"><output>40</output></div>
+      <div class="moodctrl"><span>Fear</span><input id="ctlFear" type="range" min="0" max="100" value="10"><output>10</output></div>
+      <div class="moodctrl"><span>Curiosity</span><input id="ctlCuriosity" type="range" min="0" max="100" value="60"><output>60</output></div>
+      <div class="moodctrl"><span>Fatigue</span><input id="ctlFatigue" type="range" min="0" max="100" value="10"><output>10</output></div>
+      <div class="moodctrl"><span>Irritation</span><input id="ctlIrritation" type="range" min="0" max="100" value="5"><output>5</output></div>
+      <div class="switchrow"><span>Lock overrides</span><button class="switch" id="lockMood" aria-label="Lock drive overrides"></button></div>
+    </div>
+    <div class="section">
+      <div class="row tight"><span class="label">Population</span><span class="value" id="popValue">1</span></div>
+      <div class="row tight"><span class="label">Food</span><span class="value" id="foodValue">0</span></div>
+      <div class="row tight"><span class="label">Light</span><span class="value" id="lightValue">55%</span></div>
+      <div class="row tight"><span class="label">Temp</span><span class="value" id="tempValue">22°C</span></div>
+      <div class="row tight"><span class="label">Noise</span><span class="value" id="noiseValue">low</span></div>
+      <div class="row tight"><span class="label">Social</span><span class="value" id="socialValue">independent</span></div>
+      <div class="row tight"><span class="label">Drug</span><span class="value" id="drugValue">none</span></div>
+      <div class="row tight"><span class="label">Cue memory</span><span class="value" id="memoryValue">0</span></div>
+    </div>
+  </aside>
+
+  <div class="badge"><b id="statusText">LIVE</b><br><span id="fpsText">60 fps · local model</span></div>
+  <div class="brainpanel"><h4>MODELED COMMAND ACTIVITY</h4><canvas class="spikes" id="spikeCanvas"></canvas><div class="tiny" id="brainHint">sensory · central · drive · motor</div></div>
+  <div class="toast" id="toast"></div>
+
+  <div class="dock">
+    <div class="tools" id="tools">
+      <button class="tool active" data-tool="select"><span class="ico">☝</span><span class="txt">SELECT / DRAG</span></button>
+      <button class="tool" data-tool="food"><span class="ico">🍎</span><span class="txt">FOOD</span></button>
+      <button class="tool" data-tool="sugar"><span class="ico">🍬</span><span class="txt">SUGAR</span></button>
+      <button class="tool" data-tool="bitter"><span class="ico">☠</span><span class="txt">BITTER</span></button>
+      <button class="tool" data-tool="poke"><span class="ico">👉</span><span class="txt">POKE</span></button>
+      <button class="tool danger" data-tool="scare"><span class="ico">⚡</span><span class="txt">SCARE</span></button>
+      <button class="tool" data-tool="wind"><span class="ico">💨</span><span class="txt">WIND</span></button>
+      <button class="tool" data-tool="light"><span class="ico">🔦</span><span class="txt">LIGHT</span></button>
+      <button class="tool" data-tool="heat"><span class="ico">🔥</span><span class="txt">HEAT</span></button>
+      <button class="tool" data-tool="cold"><span class="ico">❄</span><span class="txt">COLD</span></button>
+      <button class="tool" data-tool="stink"><span class="ico">🧄</span><span class="txt">STINK</span></button>
+      <button class="tool" data-tool="party"><span class="ico">✨</span><span class="txt">PARTY</span></button>
+      <button class="tool" data-tool="vacuum"><span class="ico">🌀</span><span class="txt">VACUUM</span></button>
+      <button class="tool" data-tool="possess"><span class="ico">⌖</span><span class="txt">POSSESS</span></button>
+      <button class="tool" data-tool="cueReward"><span class="ico">⊕</span><span class="txt">CUE + FOOD</span></button>
+      <button class="tool danger" data-tool="cueFear"><span class="ico">⊗</span><span class="txt">CUE + FEAR</span></button>
+      <button class="tool" data-tool="cueTest"><span class="ico">◉</span><span class="txt">CUE ONLY</span></button>
+    </div>
+    <div class="bottomline">
+      <button class="action primary" id="spawnBtn">+ SPAWN FLY</button>
+      <button class="action" id="chaosBtn">CHAOS x5</button>
+      <button class="action danger" id="resetBtn">RESET</button>
+    </div>
+  </div>
+
+  <div class="modal labmodal" id="labModal">
+    <div class="modalbox">
+      <div class="modalhead"><div><b>Neural Lab — game-layer interventions</b><br><span>conditioning · possession · circuit stimulation · lesions · drug analogues · social modes</span></div><button class="xbtn" id="closeLab">CLOSE</button></div>
+      <div class="modalbody labbody">
+        <div class="labgrid">
+          <section class="labsection"><h3>DIRECT CONTROL / POSSESSION</h3><div class="labbuttons">
+            <button class="labbtn" data-possess="off">AUTONOMOUS</button><button class="labbtn" data-possess="follow">FOLLOW TARGET</button><button class="labbtn" data-possess="repel">FLEE TARGET</button><button class="labbtn" data-possess="circle">ORBIT TARGET</button><button class="labbtn" data-possess="freeze">FREEZE</button>
+          </div><p>Use the <b>POSSESS</b> tool on the arena to move the target point. The fly still has internal drives unless Freeze is selected.</p><div class="labstat"><span>Selected mode</span><b id="possessStat">autonomous</b></div></section>
+          <section class="labsection"><h3>SIMULATED CIRCUIT STIMULATION</h3><div class="labbuttons">
+            <button class="labbtn" data-stim="locomotion">LOCOMOTION</button><button class="labbtn" data-stim="feeding">FEEDING</button><button class="labbtn" data-stim="grooming">GROOMING</button><button class="labbtn danger" data-stim="threat">THREAT</button><button class="labbtn" data-stim="rest">REST</button><button class="labbtn" data-stim="clear">CLEAR</button>
+          </div><div class="labline"><span>Strength</span><input id="stimStrength" type="range" min="10" max="100" value="70"><output>70</output></div><p>Five-second game-layer stimulation. It also biases the small activity display so you can see which modeled command band is being pushed.</p></section>
+          <section class="labsection"><h3>LESION EXPERIMENT</h3><div class="labbuttons">
+            <button class="labbtn danger" data-lesion="motor">MOTOR</button><button class="labbtn danger" data-lesion="threat">THREAT</button><button class="labbtn danger" data-lesion="feeding">FEEDING</button><button class="labbtn danger" data-lesion="groom">GROOMING</button><button class="labbtn danger" data-lesion="orientation">ORIENTATION</button><button class="labbtn" id="clearLesions">CLEAR ALL</button>
+          </div><p>These switches suppress corresponding parts of the local behavioral model. They do not modify the separate 139K-neuron FlyBrain app.</p></section>
+          <section class="labsection"><h3>DRUG-LIKE GAME MODIFIERS</h3><div class="labline"><span>Effect</span><select id="drugSelect"><option value="none">None</option><option value="stimulant">Stimulant-like</option><option value="sedative">Sedative-like</option><option value="inebriant">Inebriant-like</option></select><span></span></div><div class="labline"><span>Dose</span><input id="drugDose" type="range" min="0" max="100" value="60"><output>60</output></div><p>These are deliberately stylized behavior modifiers, not pharmacological predictions.</p></section>
+          <section class="labsection"><h3>FALSE SENSORY INPUT</h3><div class="labline"><span>Mode</span><select id="sensorSelect"><option value="normal">Normal</option><option value="invert">Invert food / aversion</option><option value="phantom">Phantom food</option><option value="threatblind">Threat-blind</option><option value="mirror">Left/right mirror</option></select><span></span></div><p>Changes what the local model acts as though it sensed. Phantom Food creates a moving imaginary target with no real reward.</p></section>
+          <section class="labsection"><h3>SOCIAL BEHAVIOR</h3><div class="labbuttons">
+            <button class="labbtn" data-social="independent">INDEPENDENT</button><button class="labbtn" data-social="swarm">SWARM</button><button class="labbtn" data-social="panic">PANIC CONTAGION</button><button class="labbtn" data-social="compete">FOOD COMPETE</button><button class="labbtn" data-social="courtship">COURTSHIP</button>
+          </div><p>Social mode applies to the whole arena. Swarm clusters flies; panic spreads fear; competition increases repulsion near food; courtship adds opposite-sex attraction.</p></section>
+          <section class="labsection"><h3>CONDITIONING / MEMORY</h3><div class="labstat"><span>Cue A association</span><b id="memoryStat">0.00 neutral</b></div><div class="memorybar"><i class="memorydot" id="memoryDot"></i></div><div class="cueLegend"><span class="fear">aversive</span><span>neutral</span><span class="reward">reward</span></div><div class="labbuttons" style="margin-top:9px"><button class="labbtn good" id="trainReward">PLACE CUE + FOOD</button><button class="labbtn danger" id="trainFear">PLACE CUE + FEAR</button><button class="labbtn" id="testCue">PLACE CUE ONLY</button><button class="labbtn" id="clearMemory">ERASE SELECTED MEMORY</button></div><p>Repeated paired exposure changes each fly’s Cue A association. Test with Cue Only and watch approach or avoidance without food or threat present.</p></section>
+          <section class="labsection"><h3>EXPERIMENT STATUS</h3><div class="labstat"><span>Population</span><b id="labPop">1</b></div><div class="labstat"><span>Active cues</span><b id="labCues">0</b></div><div class="labstat"><span>Selected fly</span><b id="labFly">F-001</b></div><div class="labstat"><span>Current intervention</span><b id="labIntervention">none</b></div><p>Tip: spawn several flies, train only some of them, then compare their Cue Only responses under different social modes.</p></section>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="brainModal">
+    <div class="modalbox">
+      <div class="modalhead"><div><b>FlyBrain — full connectome simulator</b><br><span>139,255 neurons · FlyWire FAFB v783 · external embedded app</span></div><button class="xbtn" id="closeBrain">CLOSE</button></div>
+      <div class="modalbody"><iframe id="brainFrame" title="FlyBrain full connectome simulator" loading="lazy" referrerpolicy="no-referrer"></iframe><div class="notice"><b>Why this is separate:</b> browsers block a local page from directly modifying controls inside an external site. Use the simulator’s own Feed / Touch / Air / Light / Temp controls here; use FlyLab’s playground for multi-fly dragging, spawning and experimental mood overrides. Internet is required for this embedded view.</div></div>
+    </div>
+  </div>
+
+  <div class="help" id="help">
+    <div class="helpbox"><button class="xbtn" id="closeHelp" style="float:right">CLOSE</button>
+      <h1>FlyLab controls</h1>
+      <p>The main playground is a fast, phone-friendly behavioral model. The <b>139K BRAIN</b> button embeds the real open-source FlyBrain connectome simulator. The two layers are intentionally distinguished: the playground adds game-like interactions that the published simulator does not expose.</p>
+      <h2>Playground</h2>
+      <ul><li><b>Select / drag:</b> tap a fly to select it; drag it around. Fast dragging irritates and startles it.</li><li><b>Food / Sugar / Bitter:</b> place stimuli. Hungry flies seek food; bitter items are avoided after tasting.</li><li><b>Poke / Scare:</b> poke repeatedly for irritation; scare causes an escape burst and fear spike.</li><li><b>Wind:</b> drag across the world to create a gust vector.</li><li><b>Light / Heat / Cold / Stink:</b> alter a local patch of the environment.</li><li><b>Party:</b> temporary flashing/sensory overload. <b>Vacuum:</b> pulls nearby flies toward the touch point.</li></ul>
+      <h2>Neural Lab</h2><p><b>Possession</b> can make the selected fly follow, flee, orbit or freeze around a target point. <b>Conditioning</b> pairs Cue A with food or fear and stores a per-fly association. The lesion, stimulation, drug-like, false-sensory and social controls modify only the local game-layer model; they are experiments/toys, not claims about direct control of a biological fly.</p>
+      <h2>Drive overrides</h2><p>The sliders are <b>not claimed to be biological mood controls</b>. With “Lock overrides” enabled, they clamp the selected fly’s game-layer drives for experimentation. Without the lock, the sliders simply set the current drive value and the model continues evolving.</p>
+      <h2>Running locally on a phone</h2><p>Opening <code>index.html</code> directly works for the playground on most browsers. For the embedded connectome simulator and best compatibility, serve the folder over HTTP on your local network. See <code>README.md</code> in the zip.</p>
+      <h2>Source basis</h2><p>FlyBrain by snedea is MIT-licensed and uses a FlyWire-derived connectome. This FlyLab package does not redistribute the large FlyWire binary dataset; the full simulator is loaded from its public site when you open the 139K Brain panel.</p>
+    </div>
+  </div>
+</div>
+<script>
+(()=>{
+'use strict';
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const canvas=$('#world'),ctx=canvas.getContext('2d',{alpha:false});
+const spikeCanvas=$('#spikeCanvas'),sctx=spikeCanvas.getContext('2d');
+let DPR=Math.min(innerWidth<650?1.5:2,devicePixelRatio||1),W=innerWidth,H=innerHeight;
+let tool='select',paused=false,last=performance.now(),accum=0,fps=60,selected=null,drag=null,windGesture=null,partyUntil=0;
+const flies=[], foods=[], fields=[], cues=[], ripples=[], particles=[];
+let nextId=1, env={light:.55,temp:22,noise:.12}, socialMode='independent', controlPoint={x:W*.5,y:H*.45};
+const driveNames=[['hunger','Hunger'],['fear','Fear'],['fatigue','Fatigue'],['curiosity','Curiosity'],['groom','Groom'],['irritation','Irritation']];
+function clamp(v,a=0,b=1){return Math.max(a,Math.min(b,v))} function rnd(a,b){return a+Math.random()*(b-a)} function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
+function resize(){W=innerWidth;H=innerHeight;DPR=Math.min(innerWidth<650?1.5:2,devicePixelRatio||1);canvas.width=W*DPR;canvas.height=H*DPR;canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(DPR,0,0,DPR,0,0);spikeCanvas.width=140*DPR;spikeCanvas.height=58*DPR;sctx.setTransform(DPR,0,0,DPR,0,0)}
+addEventListener('resize',resize);resize();
+function makeFly(x=rnd(80,W-80),y=rnd(120,H-170)){
+ const id=nextId++; const ang=rnd(0,Math.PI*2); const f={id,name:'F-'+String(id).padStart(3,'0'),x,y,vx:Math.cos(ang)*rnd(10,28),vy:Math.sin(ang)*rnd(10,28),ang,age:0,size:rnd(15,19),sex:Math.random()<.5?'♀':'♂',state:'wandering',hunger:rnd(.25,.6),fear:rnd(0,.12),fatigue:rnd(.02,.18),curiosity:rnd(.45,.8),groom:rnd(.02,.15),irritation:rnd(0,.08),energy:rnd(.7,1),tasteMemory:[],target:null,scareCooldown:0,pokeCount:0,lastPoke:0,override:false,memoryCue:0,drug:'none',drugDose:.6,sensorMode:'normal',possession:'off',stim:null,stimStrength:.7,stimUntil:0,lesions:{motor:false,threat:false,feeding:false,groom:false,orientation:false},brain:Array(64).fill(0).map(()=>Math.random()*.15),trail:[],flash:0};
+ flies.push(f); if(!selected) selectFly(f); toast('Spawned '+f.name+' '+f.sex); return f;
+}
+function selectFly(f){selected=f; syncControls(); refreshLabUI();}
+function moodOf(f){if(f.fear>.68)return'panicked';if(f.irritation>.62)return'furious';if(f.fatigue>.72)return'exhausted';if(f.hunger>.76)return'starving';if(f.groom>.62)return'groomy';if(f.curiosity>.7&&f.fear<.3)return'curious';if(f.energy>.78&&f.irritation<.25)return'energetic';return'neutral'}
+function addFood(x,y,type='fruit'){foods.push({x,y,type,amount:type==='sugar'?1.1:.8,age:0,r: type==='sugar'?8:10}); ripple(x,y,type==='bitter'?'#ff7185':type==='sugar'?'#f6d36c':'#79df92');}
+function addField(x,y,type,strength=1){fields.push({x,y,type,strength,age:0,maxAge:type==='light'?9:6,r:28}); ripple(x,y,type==='scare'?'#ff6d82':'#76a9ff')}
+function addCue(x,y,kind){cues.push({x,y,kind,age:0,maxAge:kind==='test'?18:11,r:30});if(kind==='reward')addFood(x,y,'sugar');if(kind==='fear')addField(x,y,'scare',.8);ripple(x,y,kind==='reward'?'#64e4a0':kind==='fear'?'#ff6d7c':'#b995ff');toast(kind==='reward'?'Cue A paired with food':kind==='fear'?'Cue A paired with fear':'Cue A presented alone')}
+function currentStim(f){return f.stim&&performance.now()<f.stimUntil?f.stim:null}
+function activeDrug(f){let d=f.drugDose||0;if(f.drug==='stimulant')return{speed:1+.65*d,jitter:.45*d,fatigue:-.12*d,calm:0};if(f.drug==='sedative')return{speed:1-.62*d,jitter:0,fatigue:.18*d,calm:.16*d};if(f.drug==='inebriant')return{speed:1-.28*d,jitter:1.35*d,fatigue:.07*d,calm:.04*d};return{speed:1,jitter:0,fatigue:0,calm:0}}
+function socialForce(f,dt){let ax=0,ay=0;if(socialMode==='independent'||flies.length<2)return{x:0,y:0};let near=0,cx=0,cy=0;for(const o of flies){if(o===f)continue;let dx=o.x-f.x,dy=o.y-f.y,d=Math.hypot(dx,dy)||1;if(d>240)continue;near++;cx+=o.x;cy+=o.y;if(socialMode==='panic'&&o.fear>.55)f.fear=clamp(f.fear+dt*.45*o.fear*(1-d/240));if(socialMode==='compete'&&d<58){ax-=dx/d*110*(1-d/58);ay-=dy/d*110*(1-d/58);f.irritation=clamp(f.irritation+dt*.06)}if(socialMode==='courtship'&&o.sex!==f.sex&&d<200&&f.fear<.45){ax+=dx/d*38;ay+=dy/d*38;f.curiosity=clamp(f.curiosity+dt*.025)}}if(near&&socialMode==='swarm'){cx/=near;cy/=near;let dx=cx-f.x,dy=cy-f.y,d=Math.hypot(dx,dy)||1;ax+=dx/d*55;ay+=dy/d*55}return{x:ax,y:ay}}
+function cueForce(f,dt){let ax=0,ay=0;f.memoryCue*=Math.pow(.99998,dt*60);for(const q of cues){let dx=q.x-f.x,dy=q.y-f.y,d=Math.hypot(dx,dy)||1;if(d>170)continue;let fall=1-d/170;if(q.kind==='reward'){f.memoryCue=clamp(f.memoryCue+dt*.13*fall,-1,1);f.curiosity=clamp(f.curiosity+dt*.035*fall)}else if(q.kind==='fear'){f.memoryCue=clamp(f.memoryCue-dt*.17*fall,-1,1)}else{let m=f.memoryCue;if(f.sensorMode==='invert')m=-m;if(m>0){ax+=dx/d*(35+100*m)*fall;ay+=dy/d*(35+100*m)*fall;f.state='approaching learned cue'}else if(m<0){ax-=dx/d*(45+130*-m)*fall;ay-=dy/d*(45+130*-m)*fall;f.fear=clamp(f.fear+dt*.08*-m*fall);f.state='avoiding learned cue'}}}return{x:ax,y:ay}}
+function ripple(x,y,color='#6ba6ff'){ripples.push({x,y,r:4,a:1,color})}
+function toast(t){const el=$('#toast');el.textContent=t;el.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('show'),1300)}
+function nearestFood(f){let best=null,bd=1e9;for(const q of foods){const d=dist(f,q);if(d<bd && q.amount>.02){best=q;bd=d}}return [best,bd]}
+function applyField(f,dt){for(const q of fields){let dx=f.x-q.x,dy=f.y-q.y,d=Math.hypot(dx,dy)||1;if(d>180)continue;let fall=1-d/180;if(q.type==='scare'){let sense=(f.sensorMode==='threatblind'||f.lesions.threat)?.08:1;f.fear=clamp(f.fear+dt*2.5*fall*sense);f.vx+=dx/d*dt*650*fall*sense;f.vy+=dy/d*dt*650*fall*sense;if(sense>.2)f.state='escaping'}
+ else if(q.type==='heat'){f.fatigue=clamp(f.fatigue+dt*.16*fall);f.vx+=dx/d*dt*90*fall}
+ else if(q.type==='cold'){f.energy=clamp(f.energy-dt*.08*fall);f.curiosity=clamp(f.curiosity+dt*.05*fall)}
+ else if(q.type==='stink'){f.irritation=clamp(f.irritation+dt*.15*fall);f.vx+=dx/d*dt*140*fall}
+ else if(q.type==='vacuum'){f.vx-=dx/d*dt*220*fall;f.vy-=dy/d*dt*220*fall}
+ else if(q.type==='light'){f.curiosity=clamp(f.curiosity+dt*.05*fall);f.vx-=dx/d*dt*55*fall;f.vy-=dy/d*dt*55*fall}}
+ }
+function brainStep(f,dt){
+ const sensory=clamp(f.fear*.8+f.irritation*.35+env.noise*.2), drive=clamp((f.hunger+f.curiosity+f.fatigue)/3), motor=clamp(Math.hypot(f.vx,f.vy)/180), stim=currentStim(f);
+ for(let i=0;i<f.brain.length;i++){let target=i<16?sensory:i<38?(sensory*.55+drive*.55):i<50?drive:motor;let noise=(Math.random()-.5)*.28;
+  if(stim){let hit=(stim==='threat'&&i<16)||(stim==='locomotion'&&i>=50)||(stim==='feeding'&&i>=38&&i<44)||(stim==='grooming'&&i>=44&&i<50)||(stim==='rest'&&i>=38&&i<50);if(hit)target=clamp(target+f.stimStrength*.9)}
+  let lesioned=(f.lesions.threat&&i<16)||(f.lesions.orientation&&i>=16&&i<38)||((f.lesions.feeding||f.lesions.groom)&&i>=38&&i<50)||(f.lesions.motor&&i>=50);if(lesioned)target*=.08;
+  f.brain[i]=clamp(f.brain[i]*(.84-dt*.8)+target*.18+noise*.13);if(Math.random()<f.brain[i]*dt*3.2)f.brain[i]=1;
+ }
+}
+function stepFly(f,dt){
+ f.age+=dt;f.scareCooldown=Math.max(0,f.scareCooldown-dt);f.flash=Math.max(0,f.flash-dt);let drug=activeDrug(f),stim=currentStim(f);
+ if(!f.override){f.hunger=clamp(f.hunger+dt*.012);f.fear=clamp(f.fear-dt*(.11+drug.calm));f.fatigue=clamp(f.fatigue+dt*(Math.hypot(f.vx,f.vy)>90?.025:-.02)+dt*drug.fatigue);f.curiosity=clamp(f.curiosity+dt*(Math.random()-.48)*.03);f.groom=clamp(f.groom-dt*.025);f.irritation=clamp(f.irritation-dt*.045)}
+ if(f.drug==='stimulant'){f.energy=clamp(f.energy+dt*.05*f.drugDose);f.curiosity=clamp(f.curiosity+dt*.03*f.drugDose)}
+ f.energy=clamp(f.energy+dt*(f.fatigue>.7?-.02:.01));applyField(f,dt);
+ if(drag&&drag.fly===f){brainStep(f,dt);return}
+ let ax=0,ay=0;const cf=cueForce(f,dt),sf=socialForce(f,dt);ax+=cf.x+sf.x;ay+=cf.y+sf.y;
+ let food=null,fd=1e9;if(f.sensorMode==='phantom'){let a=f.age*.42+f.id;food={x:W*.5+Math.cos(a)*Math.min(W*.28,180),y:H*.43+Math.sin(a*.81)*Math.min(H*.22,130),r:8,type:'phantom',amount:1};fd=dist(f,food);f.state='chasing phantom food'}else [food,fd]=nearestFood(f);
+ let feedAllowed=!f.lesions.feeding, foodValence=f.sensorMode==='invert'?-1:1;
+ if(food&&feedAllowed&&(f.hunger>.34||stim==='feeding'||food.type==='phantom')&&food.type!=='bitter'&&fd<340){let dx=food.x-f.x,dy=food.y-f.y,d=fd||1,seek=(55+120*Math.max(f.hunger,.35))*(1-f.fear*.7)*foodValence;ax+=dx/d*seek;ay+=dy/d*seek;f.target=food;if(foodValence>0&&food.type!=='phantom')f.state='seeking food';if(fd<f.size+food.r+3&&foodValence>0&&food.type!=='phantom'){let bite=dt*.48;food.amount-=bite;f.hunger=clamp(f.hunger-dt*.85);f.energy=clamp(f.energy+dt*.4);f.state='feeding';f.vx*=.82;f.vy*=.82}}
+ else if(!food||food.type!=='phantom'){f.target=null;let wander=.6+f.curiosity*1.8;f.ang+=(Math.random()-.5)*dt*2.8*wander;ax+=Math.cos(f.ang)*35*wander;ay+=Math.sin(f.ang)*35*wander;f.state=f.fatigue>.76?'resting':'wandering'}
+ for(const food2 of foods){if(food2.type!=='bitter')continue;let d=dist(f,food2),dx=f.x-food2.x,dy=f.y-food2.y;if(d<95){let sign=f.sensorMode==='invert'?-1:1;ax+=dx/(d||1)*130*sign;ay+=dy/(d||1)*130*sign;if(d<f.size+food2.r+5&&sign>0){f.irritation=clamp(f.irritation+.25);f.fear=clamp(f.fear+.12);food2.amount-=dt*.15;f.state='rejecting bitter'}}}
+ if(stim==='threat'&&!f.lesions.threat)f.fear=clamp(f.fear+dt*1.8*f.stimStrength);if(stim==='grooming'&&!f.lesions.groom)f.groom=clamp(f.groom+dt*1.5*f.stimStrength);if(stim==='rest')f.fatigue=clamp(f.fatigue+dt*1.2*f.stimStrength);if(stim==='locomotion')ax+=Math.cos(f.ang)*180*f.stimStrength;
+ if(f.fear>.42&&!f.lesions.threat){f.ang+=rnd(-.8,.8)*dt;ax+=Math.cos(f.ang)*150*f.fear;ay+=Math.sin(f.ang)*150*f.fear;f.state=f.fear>.7?'panic flight':'startled'}
+ if(f.irritation>.5){ax+=Math.cos(f.ang+Math.PI/2)*80*f.irritation;f.state='agitated'}
+ if(f.fatigue>.78||stim==='rest'){ax*=.25;ay*=.25;f.vx*=1-dt*2.2;f.vy*=1-dt*2.2;f.state='resting'}
+ if(f.groom>.55&&!f.lesions.groom){f.vx*=1-dt*3;f.vy*=1-dt*3;f.state='grooming'}
+ if(partyUntil>performance.now()){f.curiosity=clamp(f.curiosity+dt*.18);f.fear=clamp(f.fear+dt*.05);ax+=Math.cos(performance.now()/130+f.id)*60;ay+=Math.sin(performance.now()/150+f.id)*60}
+ if(f.possession!=='off'){let dx=controlPoint.x-f.x,dy=controlPoint.y-f.y,d=Math.hypot(dx,dy)||1;if(f.possession==='freeze'){ax=ay=0;f.vx*=Math.pow(.03,dt);f.vy*=Math.pow(.03,dt);f.state='possession: frozen'}else if(f.possession==='follow'){ax+=dx/d*360;ay+=dy/d*360;f.state='possession: following'}else if(f.possession==='repel'){ax-=dx/d*390;ay-=dy/d*390;f.state='possession: fleeing'}else if(f.possession==='circle'){let tx=-dy/d,ty=dx/d;ax+=tx*300+dx/d*65;ay+=ty*300+dy/d*65;f.state='possession: orbiting'}}
+ if(f.sensorMode==='mirror')ax=-ax;if(f.lesions.orientation){let rx=ax,ry=ay,turn=Math.sin(f.age*4.7+f.id)*1.7,cs=Math.cos(turn),sn=Math.sin(turn);ax=rx*cs-ry*sn;ay=rx*sn+ry*cs;f.state='disoriented'}
+ ax+=rnd(-1,1)*90*drug.jitter;ay+=rnd(-1,1)*90*drug.jitter;if(f.lesions.motor){ax*=.12;ay*=.12}
+ f.vx+=ax*dt;f.vy+=ay*dt;let max=(70+f.energy*80+f.fear*120)*drug.speed*(f.lesions.motor?.22:1);max=Math.max(12,max);let sp=Math.hypot(f.vx,f.vy);if(sp>max){f.vx=f.vx/sp*max;f.vy=f.vy/sp*max}f.vx*=Math.pow(.986,dt*60);f.vy*=Math.pow(.986,dt*60);f.x+=f.vx*dt;f.y+=f.vy*dt;
+ const margin=20,bottom=H-118;if(f.x<margin){f.x=margin;f.vx=Math.abs(f.vx)*.7}if(f.x>W-margin){f.x=W-margin;f.vx=-Math.abs(f.vx)*.7}if(f.y<72){f.y=72;f.vy=Math.abs(f.vy)*.7}if(f.y>bottom){f.y=bottom;f.vy=-Math.abs(f.vy)*.7}
+ if(Math.hypot(f.vx,f.vy)>5)f.ang=Math.atan2(f.vy,f.vx);f.trail.push([f.x,f.y]);if(f.trail.length>18)f.trail.shift();brainStep(f,dt);
+}
+function update(dt){if(paused)return;for(const f of flies)stepFly(f,dt);for(const q of foods)q.age+=dt;for(const q of fields){q.age+=dt;q.r=Math.min(180,q.r+dt*48)}for(const q of cues){q.age+=dt;q.r=Math.min(150,q.r+dt*25)}for(let i=foods.length-1;i>=0;i--)if(foods[i].amount<=.02||foods[i].age>90)foods.splice(i,1);for(let i=fields.length-1;i>=0;i--)if(fields[i].age>fields[i].maxAge)fields.splice(i,1);for(let i=cues.length-1;i>=0;i--)if(cues[i].age>cues[i].maxAge)cues.splice(i,1);for(let i=ripples.length-1;i>=0;i--){ripples[i].r+=dt*65;ripples[i].a-=dt*.7;if(ripples[i].a<=0)ripples.splice(i,1)}for(let i=particles.length-1;i>=0;i--){let p=particles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=dt*18;p.a-=dt;if(p.a<=0)particles.splice(i,1)}if(particles.length>320)particles.splice(0,particles.length-320)}
+function drawFly(f){
+ ctx.save();ctx.translate(f.x,f.y);ctx.rotate(f.ang);let s=f.size,sel=selected===f;
+ if(sel){ctx.strokeStyle='#78aaff';ctx.lineWidth=1.5;ctx.globalAlpha=.7;ctx.beginPath();ctx.arc(0,0,s+10,0,Math.PI*2);ctx.stroke()}
+ if(f.trail.length>2){ctx.restore();ctx.save();ctx.strokeStyle='#6fa0d7';ctx.globalAlpha=.12;ctx.lineWidth=1;ctx.beginPath();f.trail.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.stroke();ctx.restore();ctx.save();ctx.translate(f.x,f.y);ctx.rotate(f.ang)}
+ ctx.globalAlpha=.42;ctx.fillStyle='#c6d6e8';ctx.beginPath();ctx.ellipse(-s*.15,-s*.65,s*.75,s*.33,-.28,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.ellipse(-s*.15,s*.65,s*.75,s*.33,.28,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+ ctx.strokeStyle='#66768c';ctx.lineWidth=1.2;for(const side of [-1,1])for(let i=-1;i<=1;i++){ctx.beginPath();ctx.moveTo(i*s*.2,side*s*.28);ctx.lineTo((i*.5-.35)*s,side*s*1.0);ctx.stroke()}
+ ctx.fillStyle=f.flash>0?'#ff94a3':'#2c3340';ctx.strokeStyle='#95a2b4';ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(0,0,s*.68,s*.40,0,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.fillStyle='#272c36';ctx.beginPath();ctx.ellipse(s*.62,0,s*.34,s*.31,0,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.fillStyle='#181d25';ctx.beginPath();ctx.ellipse(-s*.62,0,s*.42,s*.32,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+ ctx.fillStyle='#d14658';ctx.beginPath();ctx.arc(s*.75,-s*.14,s*.1,0,Math.PI*2);ctx.arc(s*.75,s*.14,s*.1,0,Math.PI*2);ctx.fill();
+ ctx.restore();if(sel){ctx.fillStyle='#dce8f8';ctx.font='9px ui-monospace';ctx.fillText(f.name+' '+f.sex,f.x-f.size,f.y-f.size-13)}}
+function draw(){
+ ctx.fillStyle='#070a10';ctx.fillRect(0,0,W,H);let grd=ctx.createRadialGradient(W*.35,H*.25,10,W*.35,H*.25,Math.max(W,H));grd.addColorStop(0,`rgba(48,72,94,${.11+env.light*.08})`);grd.addColorStop(1,'rgba(1,3,7,.1)');ctx.fillStyle=grd;ctx.fillRect(0,0,W,H);
+ ctx.strokeStyle='#131b27';ctx.lineWidth=1;for(let x=0;x<W;x+=48){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}for(let y=0;y<H;y+=48){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+ for(const q of fields){let a=1-q.age/q.maxAge;ctx.globalAlpha=.14*a;ctx.fillStyle=q.type==='scare'?'#ff4866':q.type==='heat'?'#ff9b54':q.type==='cold'?'#6ac7ff':q.type==='stink'?'#9dde72':q.type==='vacuum'?'#c592ff':'#ffe778';ctx.beginPath();ctx.arc(q.x,q.y,q.r,0,Math.PI*2);ctx.fill();ctx.globalAlpha=.35*a;ctx.strokeStyle=ctx.fillStyle;ctx.beginPath();ctx.arc(q.x,q.y,q.r*.55,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1}
+ for(const q of cues){let life=1-q.age/q.maxAge;ctx.save();ctx.translate(q.x,q.y);ctx.globalAlpha=.18+.45*life;ctx.strokeStyle=q.kind==='reward'?'#64e4a0':q.kind==='fear'?'#ff6d7c':'#b995ff';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,Math.min(q.r,44),0,Math.PI*2);ctx.stroke();ctx.setLineDash([4,5]);ctx.beginPath();ctx.arc(0,0,Math.min(q.r*.62,28),0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle=ctx.strokeStyle;ctx.font='bold 9px ui-monospace';ctx.fillText('A',-3,3);ctx.restore();ctx.globalAlpha=1}
+ if(selected&&selected.possession!=='off'){ctx.save();ctx.translate(controlPoint.x,controlPoint.y);ctx.strokeStyle='#75a8ff';ctx.globalAlpha=.8;ctx.beginPath();ctx.arc(0,0,10,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(-15,0);ctx.lineTo(15,0);ctx.moveTo(0,-15);ctx.lineTo(0,15);ctx.stroke();ctx.restore();ctx.globalAlpha=1}
+ for(const q of foods){ctx.save();ctx.translate(q.x,q.y);ctx.globalAlpha=.4+.6*clamp(q.amount);ctx.fillStyle=q.type==='bitter'?'#7da65e':q.type==='sugar'?'#f2d16d':'#d95756';ctx.beginPath();ctx.arc(0,0,q.r,0,Math.PI*2);ctx.fill();ctx.fillStyle='#75b36f';ctx.fillRect(-1,-q.r-5,2,5);ctx.globalAlpha=1;ctx.restore()}
+ for(const r of ripples){ctx.globalAlpha=r.a;ctx.strokeStyle=r.color;ctx.beginPath();ctx.arc(r.x,r.y,r.r,0,Math.PI*2);ctx.stroke()}ctx.globalAlpha=1;for(const p of particles){ctx.globalAlpha=p.a;ctx.fillStyle=p.c;ctx.fillRect(p.x,p.y,2,2)}ctx.globalAlpha=1;for(const f of flies)drawFly(f);
+ if(windGesture){ctx.strokeStyle='#8ed7ff';ctx.globalAlpha=.7;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(windGesture.x0,windGesture.y0);ctx.lineTo(windGesture.x1,windGesture.y1);ctx.stroke();ctx.globalAlpha=1}
+}
+function drawSpikes(){if(!selected)return;let w=140,h=58;sctx.clearRect(0,0,w,h);sctx.fillStyle='#07101a';sctx.fillRect(0,0,w,h);let cols=32;for(let i=0;i<selected.brain.length;i++){let col=i%cols,row=Math.floor(i/cols),v=selected.brain[i];if(v<.15)continue;sctx.globalAlpha=.2+.8*v;let les=(selected.lesions.threat&&i<16)||(selected.lesions.orientation&&i>=16&&i<38)||((selected.lesions.feeding||selected.lesions.groom)&&i>=38&&i<50)||(selected.lesions.motor&&i>=50);sctx.fillStyle=les?'#3e4653':i<16?'#6ba6ff':i<38?'#62e0c0':i<50?'#d09aff':'#ffcc66';sctx.fillRect(col*(w/cols),row*26+5,2,2+v*15)}sctx.globalAlpha=1}
+function frame(t){let dt=Math.min(.05,(t-last)/1000);last=t;accum+=dt;if(dt>0)fps=fps*.9+(1/dt)*.1;update(dt);draw();drawSpikes();if(accum>.15){accum=0;updateHUD()}requestAnimationFrame(frame)}
+function updateHUD(){if(!selected)return;$('#flyName').textContent=selected.name+' '+selected.sex;$('#flyMood').textContent=moodOf(selected);$('#flyState').textContent=selected.state;let m=Math.floor(selected.age/60),s=Math.floor(selected.age%60);$('#flyAge').textContent=m+':'+String(s).padStart(2,'0');$('#popValue').textContent=flies.length;$('#foodValue').textContent=foods.length;$('#lightValue').textContent=Math.round(env.light*100)+'%';$('#tempValue').textContent=env.temp.toFixed(0)+'°C';$('#noiseValue').textContent=env.noise<.25?'low':env.noise<.55?'medium':'high';$('#socialValue').textContent=socialMode;$('#drugValue').textContent=selected.drug==='none'?'none':selected.drug+' '+Math.round(selected.drugDose*100)+'%';$('#memoryValue').textContent=(selected.memoryCue>=0?'+':'')+selected.memoryCue.toFixed(2);$('#statusText').textContent=paused?'PAUSED':'LIVE';$('#fpsText').textContent=Math.round(fps)+' fps · local model';
+ let d=$('#drives');d.innerHTML=driveNames.map(([k,n])=>`<div class="row"><span class="label">${n}</span><div class="bar"><div class="fill" style="width:${Math.round(selected[k]*100)}%"></div></div><span class="value">${Math.round(selected[k]*100)}</span></div>`).join('');if($('#labModal').classList.contains('open'))refreshLabUI();}
+function syncControls(){if(!selected)return;for(const id of ['Hunger','Fear','Curiosity','Fatigue','Irritation']){let el=$('#ctl'+id);el.value=Math.round(selected[id.toLowerCase()]*100);el.nextElementSibling.value=el.value}$('#lockMood').classList.toggle('on',!!selected.override)}
+function refreshLabUI(){if(!selected)return;$$('[data-possess]').forEach(b=>b.classList.toggle('active',b.dataset.possess===selected.possession));$$('[data-lesion]').forEach(b=>b.classList.toggle('active',!!selected.lesions[b.dataset.lesion]));$$('[data-social]').forEach(b=>b.classList.toggle('active',b.dataset.social===socialMode));$('#drugSelect').value=selected.drug;$('#drugDose').value=Math.round(selected.drugDose*100);$('#drugDose').nextElementSibling.value=Math.round(selected.drugDose*100);$('#sensorSelect').value=selected.sensorMode;$('#stimStrength').value=Math.round(selected.stimStrength*100);$('#stimStrength').nextElementSibling.value=Math.round(selected.stimStrength*100);$('#possessStat').textContent=selected.possession;let m=selected.memoryCue;$('#memoryStat').textContent=(m>=0?'+':'')+m.toFixed(2)+' '+(m>.18?'reward':m<-.18?'aversive':'neutral');$('#memoryDot').style.left=(50+m*48)+'%';$('#labPop').textContent=flies.length;$('#labCues').textContent=cues.length;$('#labFly').textContent=selected.name;let st=currentStim(selected);$('#labIntervention').textContent=st?'stim: '+st:selected.possession!=='off'?'possession: '+selected.possession:selected.sensorMode!=='normal'?'sensory: '+selected.sensorMode:selected.drug!=='none'?'drug: '+selected.drug:'none'}
+function pointerPos(e){let r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
+function hitFly(p){let best=null,bd=1e9;for(const f of flies){let d=dist(p,f);if(d<f.size+16&&d<bd){best=f;bd=d}}return best}
+canvas.addEventListener('pointerdown',e=>{e.preventDefault();canvas.setPointerCapture(e.pointerId);let p=pointerPos(e),f=hitFly(p);
+ if(tool==='select'){if(f){selectFly(f);drag={fly:f,ox:p.x-f.x,oy:p.y-f.y,lx:p.x,ly:p.y,lt:performance.now()};f.state='being dragged';f.fear=clamp(f.fear+.08);syncControls()}else ripple(p.x,p.y)}
+ else if(tool==='food')addFood(p.x,p.y,'fruit');else if(tool==='sugar')addFood(p.x,p.y,'sugar');else if(tool==='bitter')addFood(p.x,p.y,'bitter');else if(tool==='scare'){addField(p.x,p.y,'scare',1);for(let i=0;i<22;i++)particles.push({x:p.x,y:p.y,vx:rnd(-90,90),vy:rnd(-90,90),a:rnd(.3,.8),c:'#ff7a88'})}
+ else if(tool==='poke'){if(f){selectFly(f);let now=performance.now();f.pokeCount=now-f.lastPoke<2000?f.pokeCount+1:1;f.lastPoke=now;f.irritation=clamp(f.irritation+.13+.04*f.pokeCount);f.fear=clamp(f.fear+.07);f.groom=clamp(f.groom+.12);f.flash=.15;f.vx+=rnd(-80,80);f.vy+=rnd(-80,80);ripple(f.x,f.y,'#ffb86a');toast(f.pokeCount>=4?f.name+' is extremely annoyed':f.name+' poked') }}
+ else if(tool==='possess'){if(f)selectFly(f);controlPoint.x=p.x;controlPoint.y=p.y;if(selected&&selected.possession==='off')selected.possession='follow';refreshLabUI();ripple(p.x,p.y,'#75a8ff')}
+ else if(tool==='cueReward')addCue(p.x,p.y,'reward');else if(tool==='cueFear')addCue(p.x,p.y,'fear');else if(tool==='cueTest')addCue(p.x,p.y,'test')
+ else if(tool==='wind'){windGesture={x0:p.x,y0:p.y,x1:p.x,y1:p.y}}
+ else if(['heat','cold','stink','light','vacuum'].includes(tool)){addField(p.x,p.y,tool);if(tool==='light'){env.light=clamp(env.light+.08)}}
+ else if(tool==='party'){partyUntil=performance.now()+7000;env.noise=.8;ripple(p.x,p.y,'#d08cff');for(const f2 of flies){f2.curiosity=clamp(f2.curiosity+.18);f2.fear=clamp(f2.fear+.1)}setTimeout(()=>env.noise=.12,7000);toast('Sensory party: 7 seconds')}
+});
+canvas.addEventListener('pointermove',e=>{if(!e.buttons)return;let p=pointerPos(e);if(drag){let now=performance.now(),dt=Math.max(.01,(now-drag.lt)/1000),vx=(p.x-drag.lx)/dt,vy=(p.y-drag.ly)/dt;drag.fly.x=p.x-drag.ox;drag.fly.y=p.y-drag.oy;drag.fly.vx=vx*.14;drag.fly.vy=vy*.14;drag.fly.irritation=clamp(drag.fly.irritation+Math.hypot(vx,vy)*.00001);drag.fly.fear=clamp(drag.fly.fear+Math.hypot(vx,vy)*.000004);drag.lx=p.x;drag.ly=p.y;drag.lt=now}else if(windGesture){windGesture.x1=p.x;windGesture.y1=p.y}else if(tool==='possess'){controlPoint.x=p.x;controlPoint.y=p.y}});
+canvas.addEventListener('pointerup',e=>{let p=pointerPos(e);if(drag){drag.fly.state='released';ripple(drag.fly.x,drag.fly.y,'#7eaaff');drag=null}else if(windGesture){let dx=windGesture.x1-windGesture.x0,dy=windGesture.y1-windGesture.y0,len=Math.hypot(dx,dy),nx=dx/(len||1),ny=dy/(len||1);for(const f of flies){let d=Math.hypot(f.x-windGesture.x0,f.y-windGesture.y0);if(d<360){let k=(1-d/360)*Math.min(240,len*1.4);f.vx+=nx*k;f.vy+=ny*k;f.fear=clamp(f.fear+.12*(k/240));f.state='wind startled'}}ripple(p.x,p.y,'#88d8ff');windGesture=null}});
+$$('.tool').forEach(b=>b.addEventListener('click',()=>{tool=b.dataset.tool;$$('.tool').forEach(x=>x.classList.toggle('active',x===b));toast(b.querySelector('.txt').textContent)}));
+$('#spawnBtn').onclick=()=>makeFly();$('#chaosBtn').onclick=()=>{for(let i=0;i<5;i++)makeFly(rnd(40,W-40),rnd(100,H-170));toast('Five new flies released')};$('#resetBtn').onclick=()=>{flies.length=foods.length=fields.length=cues.length=ripples.length=particles.length=0;nextId=1;selected=null;socialMode='independent';makeFly(W*.55,H*.42);toast('Lab reset')};
+$('#pauseBtn').onclick=()=>{paused=!paused;$('#pauseBtn').textContent=paused?'RESUME':'PAUSE'};$('#panelBtn').onclick=()=>$('#hud').classList.toggle('hidden');
+$('#helpBtn').onclick=()=>$('#help').classList.add('open');$('#closeHelp').onclick=()=>$('#help').classList.remove('open');
+$('#labBtn').onclick=()=>{$('#labModal').classList.add('open');refreshLabUI()};$('#closeLab').onclick=()=>$('#labModal').classList.remove('open');
+$$('[data-possess]').forEach(b=>b.onclick=()=>{if(!selected)return;selected.possession=b.dataset.possess;refreshLabUI();toast('Possession: '+selected.possession)});
+$$('[data-stim]').forEach(b=>b.onclick=()=>{if(!selected)return;let k=b.dataset.stim;if(k==='clear'){selected.stim=null;selected.stimUntil=0;toast('Stimulation cleared')}else{selected.stim=k;selected.stimStrength=+$('#stimStrength').value/100;selected.stimUntil=performance.now()+5000;toast(k+' stimulation: 5 s')}refreshLabUI()});
+$$('[data-lesion]').forEach(b=>b.onclick=()=>{if(!selected)return;let k=b.dataset.lesion;selected.lesions[k]=!selected.lesions[k];refreshLabUI();toast((selected.lesions[k]?'Lesioned ':'Restored ')+k)});
+$('#clearLesions').onclick=()=>{if(!selected)return;Object.keys(selected.lesions).forEach(k=>selected.lesions[k]=false);refreshLabUI();toast('All lesion switches cleared')};
+$('#stimStrength').oninput=e=>{if(selected)selected.stimStrength=+e.target.value/100;e.target.nextElementSibling.value=e.target.value};
+$('#drugSelect').onchange=e=>{if(!selected)return;selected.drug=e.target.value;refreshLabUI();toast('Drug modifier: '+selected.drug)};$('#drugDose').oninput=e=>{if(!selected)return;selected.drugDose=+e.target.value/100;e.target.nextElementSibling.value=e.target.value};
+$('#sensorSelect').onchange=e=>{if(!selected)return;selected.sensorMode=e.target.value;refreshLabUI();toast('Sensory mode: '+selected.sensorMode)};
+$$('[data-social]').forEach(b=>b.onclick=()=>{socialMode=b.dataset.social;refreshLabUI();toast('Social mode: '+socialMode)});
+function armTool(name){tool=name;$$('.tool').forEach(x=>x.classList.toggle('active',x.dataset.tool===name));$('#labModal').classList.remove('open');toast('Tap arena to place '+(name==='cueReward'?'Cue A + food':name==='cueFear'?'Cue A + fear':'Cue A'))}
+$('#trainReward').onclick=()=>armTool('cueReward');$('#trainFear').onclick=()=>armTool('cueFear');$('#testCue').onclick=()=>armTool('cueTest');$('#clearMemory').onclick=()=>{if(!selected)return;selected.memoryCue=0;refreshLabUI();toast(selected.name+' cue memory erased')};
+$('#realBrainBtn').onclick=()=>{let m=$('#brainModal');m.classList.add('open');let fr=$('#brainFrame');if(!fr.src)fr.src='https://flybrain.app/'};$('#closeBrain').onclick=()=>$('#brainModal').classList.remove('open');
+for(const id of ['Hunger','Fear','Curiosity','Fatigue','Irritation']){let el=$('#ctl'+id);el.addEventListener('input',()=>{if(!selected)return;selected[id.toLowerCase()]=+el.value/100;el.nextElementSibling.value=el.value})}
+$('#lockMood').onclick=()=>{if(!selected)return;selected.override=!selected.override;$('#lockMood').classList.toggle('on',selected.override);toast(selected.override?'Drive overrides locked':'Drive overrides released')};
+makeFly(W*.58,H*.42);addFood(W*.35,H*.46,'fruit');addFood(W*.72,H*.53,'sugar');requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
